@@ -16,6 +16,7 @@ import CardHeader from '@mui/material/CardHeader';
 import CardActions from '@mui/material/CardActions';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
+import Cookies from 'js-cookie';
 
 
 function App() {
@@ -56,6 +57,12 @@ function App() {
   }
 
   useEffect(() => {
+    if (Cookies.get('userinfo')) {
+      const encodedUserInfo = Cookies.get('userinfo')!
+      const userInfo = JSON.parse(atob(encodedUserInfo))
+      sessionStorage.setItem('userInfo', JSON.stringify(userInfo))
+      Cookies.remove('userinfo')
+    }
     if (sessionStorage.getItem("userInfo")) {
       const userInfo = JSON.parse(sessionStorage.getItem("userInfo")!);
       setUser(userInfo.username);
@@ -124,11 +131,8 @@ function App() {
 }
 
 function LoginButton() {
-  const [username, setUsername] = useState('');
-
   function handleLogin() {
-    sessionStorage.setItem('userInfo', JSON.stringify({ username }));
-    window.location.reload();
+    window.location.href = '/auth/login';
   }
 
   return (
@@ -141,7 +145,6 @@ function LoginButton() {
       <Card variant="outlined">
         <CardContent>
           <Stack spacing={2}>
-            <TextField variant="outlined" label="Username" onChange={e => { setUsername(e.target.value) }} />
             <Button variant="contained" onClick={handleLogin}>Login</Button>
           </Stack>
         </CardContent>
