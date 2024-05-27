@@ -102,17 +102,21 @@ function App() {
           <Button onClick={getDiaryEntries}>Refresh</Button>
         </CardActions>
         <CardContent>
-
-
-          <List>
-            {entryList.map((entry) => {
-              return (
-                <ListItem key={entry.id}>
-                  <ListItemText primary={entry.value} />
-                </ListItem>
-              );
-            })}
-          </List>
+          {
+            isEntriesLoading
+              ?
+              <CircularProgress />
+              :
+              <List>
+                {entryList.map((entry) => {
+                  return (
+                    <ListItem key={entry.id}>
+                      <ListItemText primary={entry.value} />
+                    </ListItem>
+                  );
+                })}
+              </List>
+          }
         </CardContent>
       </Card>
     </>
