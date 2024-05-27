@@ -1,6 +1,6 @@
 import ballerina/uuid;
 import ballerina/http;
-// import ballerina/jwt;
+import ballerina/jwt;
 
 type EntryPayload record {|
     string username;
@@ -13,7 +13,6 @@ type Entry record {|
 |};
 
 map<map<Entry>> entries = {};
-// const string DEFAULT_USER = "default";
 
 @http:ServiceConfig {
     cors: {
@@ -28,6 +27,9 @@ map<map<Entry>> entries = {};
 service / on new http:Listener(9090) {
 
     resource function get entries(http:Headers headers, string username) returns Entry[]|http:BadRequest|error {
+        if (!isValidUser(headers, username)) {
+            return <http:BadRequest>{body: {"error": "Unauthorized", "error_description": "Invalid user"}};
+        }
         map<Entry>|http:BadRequest usersEntries = check getUsersEntries(username);
         if (usersEntries is map<Entry>) {
             return usersEntries.toArray();
@@ -36,8 +38,11 @@ service / on new http:Listener(9090) {
     }
 
     resource function post entries(http:Headers headers,
-            @http:Payload EntryPayload newEntry) returns http:Created|error {
+            @http:Payload EntryPayload newEntry) returns http:Created|http:BadRequest|error {
 
+        if (!isValidUser(headers, newEntry.username)) {
+            return <http:BadRequest>{body: {"error": "Unauthorized", "error_description": "Invalid user"}};
+        }
         string entryId = uuid:createType1AsString();
         map<Entry>|error usersEntries = check getUsersEntries(newEntry.username);
         if (usersEntries is map<Entry>) {
@@ -55,24 +60,22 @@ function getUsersEntries(string username) returns map<Entry>|error {
     return <map<Entry>>entries[username];
 }
 
-// This function is used to get the diary entries of the user who is logged in.
-// User information is extracted from the JWT token.
-// function getUsersEntries(http:Headers headers) returns map<Entry>|http:BadRequest|error {
-//     string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
-//     if (jwtAssertion is error) {
-//         http:BadRequest badRequest = {
-//             body: {
-//                 "error": "Bad Request",
-//                 "error_description": "Error while getting the JWT token"
-//             }
-//         };
-//         return badRequest;
-//     }
+function isValidUser(http:Headers headers, string username) returns boolean {
+    string|error jwtAssertion = headers.getHeader("x-jwt-assertion");
+    if (jwtAssertion is error) {
+        return false;
+    }
 
-//     [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(jwtAssertion);
-//     string username = payload.sub is string ? <string>payload.sub : DEFAULT_USER;
-//     if (entries[username] is ()) {
-//         entries[username] = {};
-//     }
-//     return <map<Entry>>entries[username];
-// }
+    [jwt:Header, jwt:Payload]|error decodedJwt = jwt:decode(jwtAssertion);
+    if (decodedJwt is error) {
+        return false;
+    }
+
+    [jwt:Header, jwt:Payload] [_, payload] = decodedJwt;
+
+    if (payload.sub is string && <string>payload[username] == username) {
+        return true;
+    }
+
+    return false;
+}
