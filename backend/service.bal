@@ -73,7 +73,7 @@ function isValidUser(http:Headers headers, string username) returns boolean {
 
     [jwt:Header, jwt:Payload] [_, payload] = decodedJwt;
 
-    if (payload.sub is string && <string>payload[username] == username) {
+    if (payload.sub is string && <string>payload.sub == username) {
         return true;
     }
 
